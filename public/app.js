@@ -60,9 +60,6 @@ const btnPlay = document.getElementById('btn-play')
 const getPlayIcon = () => document.getElementById('play-icon')
 const btnStop = document.getElementById('btn-stop')
 const btnLoop = document.getElementById('btn-loop')
-// const btnZoomIn = document.getElementById('btn-zoom-in')
-// const btnZoomOut = document.getElementById('btn-zoom-out')
-// const zoomSlider = document.getElementById('zoom-slider')
 const btnMute = document.getElementById('btn-mute')
 const getMuteIcon = () => document.getElementById('mute-icon')
 const volumeSlider = document.getElementById('volume-slider')
@@ -172,29 +169,6 @@ function setupEventListeners() {
     // Loop Button
     btnLoop.addEventListener('click', toggleLoop)
 
-    // Zoom Controls
-    // zoomSlider.addEventListener('input', (e) => {
-    //     const val = parseInt(e.target.value)
-    //     if (wavesurfer) {
-    //         // Apply horizontal zoom
-    //         wavesurfer.zoom(val)
-    //     }
-    // })
-
-    // btnZoomIn.addEventListener('click', () => {
-    //     let val = parseInt(zoomSlider.value)
-    //     val = Math.min(val + 15, 150)
-    //     zoomSlider.value = val
-    //     if (wavesurfer) wavesurfer.zoom(val)
-    // })
-
-    // btnZoomOut.addEventListener('click', () => {
-    //     let val = parseInt(zoomSlider.value)
-    //     val = Math.max(val - 15, 1)
-    //     zoomSlider.value = val
-    //     if (wavesurfer) wavesurfer.zoom(val)
-    // })
-
     // Volume / Mute controls
     volumeSlider.addEventListener('input', (e) => {
         const val = parseFloat(e.target.value) / 100
@@ -271,22 +245,6 @@ function setupEventListeners() {
                     wavesurfer.skip(-5)
                 }
                 break
-            case 'Equal':
-            case 'NumpadAdd':
-            // if (wavesurfer) {
-            //     let v = Math.min(parseInt(zoomSlider.value) + 10, 150)
-            //     zoomSlider.value = v
-            //     wavesurfer.zoom(v)
-            // }
-            // break
-            case 'Minus':
-            case 'NumpadSubtract':
-            // if (wavesurfer) {
-            //     let v = Math.max(parseInt(zoomSlider.value) - 10, 1)
-            //     zoomSlider.value = v
-            //     wavesurfer.zoom(v)
-            // }
-            // break
             case 'Escape':
                 if (wavesurfer) {
                     wavesurfer.stop()
@@ -476,22 +434,6 @@ function setProgressValue(percentage) {
     progressPercent.textContent = `${percentage}%`
 }
 
-// Calculate the exact frequency represented at a given height fraction h (0.0 = bottom, 1.0 = top)
-// matching Wavesurfer's internal scaling filters.
-function getFrequencyForHeightFraction(h, maxKhz, scale) {
-    if (scale === 'mel') {
-        const maxHz = maxKhz * 1000
-        const hz = 700 * (Math.pow(10, h * Math.log10(1 + maxHz / 700)) - 1)
-        return hz / 1000
-    } else if (scale === 'logarithmic') {
-        const maxHz = maxKhz * 1000
-        const hz = Math.max(1, Math.pow(maxHz, h))
-        return hz / 1000
-    }
-    // Default / Linear
-    return h * maxKhz
-}
-
 // Update the dynamic visual items for file tags/codecs
 function displayTrackMetadata(data) {
     // Top active filename tag
@@ -535,41 +477,6 @@ function displayTrackMetadata(data) {
     metaFormatLong.title = data.format.containerLong || ''
     metaFilesize.textContent = formatBytes(data.sizeBytes)
     metaDuration.textContent = formatTime(data.duration)
-
-    // Nyquist Frequency calculation
-    if (hz) {
-        const nyquistVal = hz / 2
-        // metaNyquist.textContent = `${parseFloat((nyquistVal / 1000).toFixed(2))} kHz`
-
-        // Dynamically update side kHz scale labels depending on frequency limits!
-        const maxKhz = nyquistVal / 1000
-        const activeScale = document.getElementById('spectrogram-scale-select')?.value || 'mel'
-        khzMax.textContent = `${getFrequencyForHeightFraction(1.0, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid8.textContent = `${getFrequencyForHeightFraction(0.9, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid7.textContent = `${getFrequencyForHeightFraction(0.8, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid6.textContent = `${getFrequencyForHeightFraction(0.7, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid5.textContent = `${getFrequencyForHeightFraction(0.6, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid4.textContent = `${getFrequencyForHeightFraction(0.5, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid3.textContent = `${getFrequencyForHeightFraction(0.4, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid2.textContent = `${getFrequencyForHeightFraction(0.3, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid1.textContent = `${getFrequencyForHeightFraction(0.2, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid0.textContent = `${getFrequencyForHeightFraction(0.1, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMin.textContent = '0 Hz'
-    } else {
-        // metaNyquist.textContent = '22.05 kHz'
-        const activeScale = document.getElementById('spectrogram-scale-select')?.value || 'mel'
-        khzMax.textContent = `${getFrequencyForHeightFraction(1.0, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid8.textContent = `${getFrequencyForHeightFraction(0.9, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid7.textContent = `${getFrequencyForHeightFraction(0.8, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid6.textContent = `${getFrequencyForHeightFraction(0.7, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid5.textContent = `${getFrequencyForHeightFraction(0.6, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid4.textContent = `${getFrequencyForHeightFraction(0.5, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid3.textContent = `${getFrequencyForHeightFraction(0.4, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid2.textContent = `${getFrequencyForHeightFraction(0.3, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid1.textContent = `${getFrequencyForHeightFraction(0.2, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMid0.textContent = `${getFrequencyForHeightFraction(0.1, maxKhz, activeScale).toFixed(1)} kHz`
-        khzMin.textContent = '0 Hz'
-    }
 
     // Embed tag values
     const t = data.format.tags || {}
@@ -619,9 +526,6 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
     document.getElementById('waveform-container').innerHTML = ''
     document.getElementById('spectrogram-container').innerHTML = ''
 
-    // Re-set zoom slider to default 1
-    // zoomSlider.value = 1
-
     // Wavesurfer.js Color Configuration: Sleek dark contrast charcoal and neon indicators
     wavesurfer = WaveSurfer.create({
         container: '#waveform-container',
@@ -643,7 +547,7 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
             // Dynamic synchronized waterfall Spectrogram plugin
             Spectrogram.create({
                 container: '#spectrogram-container',
-                labels: false, // We supply our own high fidelity kHz scale on the side
+                labels: true, // We supply our own high fidelity kHz scale on the side
                 height: 480,
                 fftSamples: 1024, // High-fidelity FFT resolution
                 splitChannels: false,
@@ -705,36 +609,6 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
         const duration = wavesurfer.getDuration()
         timeCurrent.textContent = formatTime(0)
         timeTotal.textContent = formatTime(duration)
-
-        // Update visual kHz labels under actual decoded Web Audio buffer's sample rate.
-        // This handles cases where browser automatically upsamples e.g. 44.1kHz files to 48kHz audio context!
-        const decodedData = wavesurfer.getDecodedData()
-        if (decodedData) {
-            const actualSampleRate = decodedData.sampleRate
-            const nyquistVal = actualSampleRate / 2
-            const maxKhz = nyquistVal / 1000
-
-            // Read selected scale to map correctly
-            const activeScale = document.getElementById('spectrogram-scale-select')?.value || 'mel'
-
-            khzMax.textContent = `${getFrequencyForHeightFraction(1.0, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid8.textContent = `${getFrequencyForHeightFraction(0.9, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid7.textContent = `${getFrequencyForHeightFraction(0.8, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid6.textContent = `${getFrequencyForHeightFraction(0.7, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid5.textContent = `${getFrequencyForHeightFraction(0.6, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid4.textContent = `${getFrequencyForHeightFraction(0.5, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid3.textContent = `${getFrequencyForHeightFraction(0.4, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid2.textContent = `${getFrequencyForHeightFraction(0.3, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid1.textContent = `${getFrequencyForHeightFraction(0.2, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMid0.textContent = `${getFrequencyForHeightFraction(0.1, maxKhz, activeScale).toFixed(1)} kHz`
-            khzMin.textContent = '0 Hz'
-
-            // Highlight the configured FFT detail resolution
-            const fftLabel = document.getElementById('spectrogram-resolution-label')
-            if (fftLabel) {
-                fftLabel.textContent = `1024 FFT`
-            }
-        }
 
         // Match player controls volume state to current UI
         const currentVol = parseFloat(volumeSlider.value) / 100

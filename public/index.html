@@ -293,14 +293,6 @@
                                             >--</span
                                         >
                                     </div>
-                                    <!-- <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-500">Nyquist Freq</span>
-                                        <span
-                                            id="meta-nyquist"
-                                            class="font-semibold text-slate-200 code-font"
-                                            >--</span
-                                        >
-                                    </div> -->
                                 </div>
                             </div>
                         </div>
@@ -416,23 +408,6 @@
                             <!-- Layout wrapping Spectrogram Canvas and side Y-Axis kHz scale -->
                             <div
                                 class="relative flex items-stretch bg-black/60 rounded border-l border-slate-900/80 overflow-hidden mb-2.5">
-                                <!-- Side kHz scale wrapper bg-slate-800/20 border-l border-slate-950/80  -->
-                                <div
-                                    class="absolute z-10 top-0 bottom-0 right-0 pl-2 pr-2 w-18 flex-shrink-0 flex flex-col justify-between items-start bg-slate-900/50 border-l border-slate-800/80 text-slate-200 code-font font-semibold pointer-events-none"
-                                    style="font-size: 10px">
-                                    <div id="khz-max"></div>
-                                    <div id="khz-mid8"></div>
-                                    <div id="khz-mid7"></div>
-                                    <div id="khz-mid6"></div>
-                                    <div id="khz-mid5"></div>
-                                    <div id="khz-mid4"></div>
-                                    <div id="khz-mid3"></div>
-                                    <div id="khz-mid2"></div>
-                                    <div id="khz-mid1"></div>
-                                    <div id="khz-mid0"></div>
-                                    <div id="khz-min"></div>
-                                </div>
-
                                 <!-- Spectrogram wrapper scroll synced relative flex-1 -->
                                 <div
                                     class="w-full overflow-hidden min-h-[480px]"
@@ -532,34 +507,6 @@
 
                         <!-- Right: Zoom, Volume Slider -->
                         <div class="flex items-center gap-6 w-full md:w-auto">
-                            <!-- Horizontal zoom control (Adobe Audition Style scrolling) -->
-                            <!-- <div class="flex-1 md:flex-initial flex items-center gap-2 min-w-[130px]">
-                                <button
-                                    id="btn-zoom-out"
-                                    class="text-slate-400 hover:text-cyan-400 transition"
-                                    title="Zoom Out (-)">
-                                    <i
-                                        data-lucide="zoom-out"
-                                        class="w-4 h-4"></i>
-                                </button>
-                                <input
-                                    type="range"
-                                    id="zoom-slider"
-                                    min="1"
-                                    max="150"
-                                    value="1"
-                                    class="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
-                                    title="Zoom Waveform Scale" />
-                                <button
-                                    id="btn-zoom-in"
-                                    class="text-slate-400 hover:text-cyan-400 transition"
-                                    title="Zoom In (+)">
-                                    <i
-                                        data-lucide="zoom-in"
-                                        class="w-4 h-4"></i>
-                                </button>
-                            </div> -->
-
                             <!-- Division block -->
                             <div class="hidden md:block w-px h-6 bg-slate-850"></div>
 
@@ -652,20 +599,6 @@
                             >←</kbd
                         >
                     </div>
-                    <!-- <div class="flex justify-between items-center py-1.5 border-b border-slate-800 text-xs">
-                        <span class="text-slate-400">Zoom in</span>
-                        <kbd
-                            class="px-2 py-1 bg-slate-950 font-bold text-slate-200 code-font rounded border border-slate-800 shadow"
-                            >=</kbd
-                        >
-                    </div>
-                    <div class="flex justify-between items-center py-1.5 text-xs">
-                        <span class="text-slate-400">Zoom out</span>
-                        <kbd
-                            class="px-2 py-1 bg-slate-950 font-bold text-slate-200 code-font rounded border border-slate-800 shadow"
-                            >-</kbd
-                        >
-                    </div> -->
                 </div>
 
                 <button
