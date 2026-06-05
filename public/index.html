@@ -418,35 +418,26 @@
                             <div
                                 class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-slate-500">
                                 <span
-                                    class="flex items-center gap-1 font-semibold uppercase tracking-wider text-indigo-400"
-                                    ><i
-                                        data-lucide="eye"
-                                        class="w-3 h-3"></i>
-                                    <!-- Spectrogram -->
-                                </span>
-                                <div class="flex flex-wrap items-center gap-2 sm:gap-3 self-end sm:self-auto">
-                                    <!-- Scale Scale Selector -->
-                                    <div class="flex items-center gap-1">
-                                        <span class="text-slate-600 text-[9px] uppercase tracking-wider font-semibold"
-                                            >Scale:</span
-                                        >
-                                        <select
-                                            id="spectrogram-scale-select"
-                                            class="bg-slate-950 text-slate-300 border border-slate-800/80 rounded px-1.5 py-0.5 text-[9.5px] cursor-pointer hover:bg-slate-900 border-none outline-none focus:ring-1 focus:ring-indigo-500 font-medium tracking-wide">
-                                            <option value="mel">Mel (Audition Pro)</option>
-                                            <option
-                                                value="linear"
-                                                selected>
-                                                Linear (Flat)
-                                            </option>
-                                            <option value="logarithmic">Logarithmic (Ultra-Low)</option>
-                                        </select>
-                                    </div>
-                                    <span
-                                        id="spectrogram-resolution-label"
-                                        class="text-[9px] px-1 bg-violet-950/40 text-violet-400 rounded border border-violet-800/10 code-font"
-                                        >1024 FFT</span
+                                    id="spectrogram-resolution-label"
+                                    class="text-[9px] px-1 bg-violet-950/40 text-violet-400 rounded border border-violet-800/10 code-font"
+                                    >1024 FFT</span
+                                >
+                                <!-- Scale Scale Selector -->
+                                <div class="flex items-center gap-1">
+                                    <span class="text-slate-600 text-[9px] uppercase tracking-wider font-semibold"
+                                        >Scale:</span
                                     >
+                                    <select
+                                        id="spectrogram-scale-select"
+                                        class="bg-slate-950 text-slate-300 border border-slate-800/80 rounded px-1.5 py-0.5 text-[9.5px] cursor-pointer hover:bg-slate-900 border-none outline-none focus:ring-1 focus:ring-indigo-500 font-medium tracking-wide">
+                                        <option value="mel">Mel (Audition Pro)</option>
+                                        <option
+                                            value="linear"
+                                            selected>
+                                            Linear (Flat)
+                                        </option>
+                                        <option value="logarithmic">Logarithmic (Ultra-Low)</option>
+                                    </select>
                                 </div>
                             </div>
                         </div>
@@ -526,7 +517,7 @@
                                     id="volume-slider"
                                     min="0"
                                     max="100"
-                                    value="80"
+                                    value="50"
                                     class="flex-1 accent-cyan-500 h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer"
                                     title="Audio Gain/Volume" />
                             </div>
