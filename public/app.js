@@ -548,7 +548,7 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
             Spectrogram.create({
                 container: '#spectrogram-container',
                 labels: true, // We supply our own high fidelity kHz scale on the side
-                height: 480,
+                height: 420,
                 fftSamples: 1024, // High-fidelity FFT resolution
                 splitChannels: false,
                 scale: document.getElementById('spectrogram-scale-select')?.value || 'mel',
