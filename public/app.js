@@ -11,6 +11,7 @@ let previousVolume = 0.8
 let currentTags = {} // Stores current metadata tags key-values
 let originalFileName = null // Stores currently loaded track filename for saved edits
 let newCoverArtFile = null // Holds new cover art file object if replaced locally
+let spectrogramRect = null // Holds the current spectrogram container rect for mouse coordinate calculations
 
 // DOM Elements
 const dropzone = document.getElementById('dropzone')
@@ -21,6 +22,10 @@ const progressPercent = document.getElementById('progress-percent')
 const progressStatus = document.getElementById('progress-status')
 const audioFilesList = document.getElementById('audio-files-list')
 const audioFilesCount = document.getElementById('audio-files-count')
+const waveformContainer = document.getElementById('waveform-container')
+const scaleSelect = document.getElementById('spectrogram-scale-select')
+const mousePosFrequency = document.getElementById('mousePosFrequency')
+const mousePosFrequencyLabel = document.getElementById('mousePosFrequencyLabel')
 
 // Metadata DOM Elements
 const activeFileHeader = document.getElementById('active-file-header')
@@ -36,7 +41,6 @@ const metaFormatShort = document.getElementById('meta-format-short')
 const metaFormatLong = document.getElementById('meta-format-long')
 const metaFilesize = document.getElementById('meta-filesize')
 const metaDuration = document.getElementById('meta-duration')
-// const metaNyquist = document.getElementById('meta-nyquist')
 
 const tagsListContainer = document.getElementById('tags-list-container')
 const btnAddTag = document.getElementById('btn-add-tag')
@@ -47,19 +51,6 @@ const btnReplaceArt = document.getElementById('btn-replace-art')
 const btnDownloadArt = document.getElementById('btn-download-art')
 const metaCoverArt = document.getElementById('meta-cover-art')
 const metaCoverPlaceholder = document.getElementById('meta-cover-placeholder')
-
-// Frequency Scale DOM Elements
-const khzMax = document.getElementById('khz-max')
-const khzMid8 = document.getElementById('khz-mid8')
-const khzMid7 = document.getElementById('khz-mid7')
-const khzMid6 = document.getElementById('khz-mid6')
-const khzMid5 = document.getElementById('khz-mid5')
-const khzMid4 = document.getElementById('khz-mid4')
-const khzMid3 = document.getElementById('khz-mid3')
-const khzMid2 = document.getElementById('khz-mid2')
-const khzMid1 = document.getElementById('khz-mid1')
-const khzMid0 = document.getElementById('khz-mid0')
-const khzMin = document.getElementById('khz-min')
 
 // Controls DOM Elements
 const btnPlay = document.getElementById('btn-play')
@@ -110,8 +101,37 @@ function formatBytes(bytes) {
     return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
 }
 
+function updateSpectrogramRect() {
+    spectrogramRect = waveformContainer.getBoundingClientRect()
+}
+
+function updateMousePosFrequency(event) {
+    if (mousePosFrequency.style.opacity == '0') mousePosFrequency.style.opacity = '1'
+    const relativeX = event.clientX - spectrogramRect.left
+    const relativeY = event.clientY - spectrogramRect.top
+
+    mousePosFrequency.style.top = `${relativeY}px`
+    mousePosFrequencyLabel.style.left = `${relativeX}px`
+    mousePosFrequencyLabel.innerText = `${getFrequencyForHeightFraction(1 - (relativeY - 120) / 420, currentFileSampleRate / 2, scaleSelect.value).toFixed(1)} Hz`
+}
+
 // Setup drag and drop / click listeners
 function setupEventListeners() {
+    updateSpectrogramRect()
+    document.addEventListener('mousemove', (event) => {
+        if (scaleSelect.value != 'linear') return
+        if (
+            event.clientX >= spectrogramRect.left &&
+            event.clientX <= spectrogramRect.right &&
+            event.clientY >= spectrogramRect.top + 120 &&
+            event.clientY <= spectrogramRect.bottom
+        ) {
+            updateMousePosFrequency(event)
+        } else {
+            if (mousePosFrequency.style.opacity == '1') mousePosFrequency.style.opacity = '0'
+        }
+    })
+
     // Help Modal
     btnThemeHelp.addEventListener('click', () => helpModal.classList.remove('hidden'))
     btnCloseHelp.addEventListener('click', () => helpModal.classList.add('hidden'))
@@ -199,7 +219,6 @@ function setupEventListeners() {
     btnMute.addEventListener('click', toggleMute)
 
     // Spectrogram Display Controls (Scale selector)
-    const scaleSelect = document.getElementById('spectrogram-scale-select')
 
     const refreshSpectrogram = () => {
         if (currentFileUrl) {
@@ -573,6 +592,20 @@ function displayTrackMetadata(data) {
     }
 }
 
+function getFrequencyForHeightFraction(h, maxKhz, scale) {
+    if (scale === 'mel') {
+        const maxHz = maxKhz * 1000
+        const hz = 700 * (Math.pow(10, h * Math.log10(1 + maxHz / 700)) - 1)
+        return hz / 1000
+    } else if (scale === 'logarithmic') {
+        const maxHz = maxKhz * 1000
+        const hz = Math.max(1, Math.pow(maxHz, h))
+        return hz / 1000
+    }
+    // Default / Linear
+    return h * maxKhz
+}
+
 // Set up WaveSurfer core + Spectrogram + Timeline
 function initWaveSurfer(audioUrl, fileSampleRate) {
     currentFileUrl = audioUrl
@@ -593,7 +626,7 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
 
     // Clean visualization DOM elements
     document.getElementById('waveform-container').innerHTML = ''
-    document.getElementById('spectrogram-container').innerHTML = ''
+    // document.getElementById('spectrogram-container').innerHTML = ''
 
     // Wavesurfer.js Color Configuration: Sleek dark contrast charcoal and neon indicators
     wavesurfer = WaveSurfer.create({
@@ -615,14 +648,17 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
         plugins: [
             // Dynamic synchronized waterfall Spectrogram plugin
             Spectrogram.create({
-                container: '#spectrogram-container',
+                // container: '#spectrogram-container',
                 labels: true, // We supply our own high fidelity kHz scale on the side
+                labelsColor: '#FFF', // Soft blue-gray for frequency labels
+                labelsBackground: 'rgba(0, 0, 0, 0.1)', // Subtle background for labels
                 height: 420,
-                fftSamples: 1024, // High-fidelity FFT resolution
+                fftSamples: 512, // High-fidelity FFT resolution
                 splitChannels: false,
+                useWebWorker: true,
                 scale: document.getElementById('spectrogram-scale-select')?.value || 'mel',
                 gainDB: 5, // Max ceiling at -5 dBFS
-                rangeDB: 70, // Dynamic range of 70 dB (silence threshold is -75 dBFS)
+                rangeDB: 80, // Dynamic range of 80 dB (silence threshold is -75 dBFS)
                 colorMap: (() => {
                     // Generate a high fidelity beautiful neon/spectral colormap with 256 colors
                     const map = []
@@ -687,6 +723,15 @@ function initWaveSurfer(audioUrl, fileSampleRate) {
         const playIcon = getPlayIcon()
         if (playIcon) playIcon.setAttribute('data-lucide', 'play')
         lucide.createIcons()
+    })
+
+    wavesurfer.on('spectrogram-ready', () => {
+        // Update spectrogram rect for accurate mouse coordinate calculations
+        updateSpectrogramRect()
+    })
+
+    wavesurfer.on('spectrogram-click', (relativeX) => {
+        wavesurfer.setTime(relativeX * wavesurfer.getDuration())
     })
 
     wavesurfer.on('audioprocess', (time) => {

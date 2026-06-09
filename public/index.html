@@ -447,26 +447,20 @@
                         <div class="bg-slate-900/30 p-3 rounded-lg border border-slate-900">
                             <div
                                 id="waveform-viewport-container"
-                                class="bg-black/60 rounded border-l border-slate-900/80 relative overflow-hidden">
-                                <!-- Overlay markers and values if needed -->
+                                class="bg-black/60 rounded border-l border-slate-900/80 relative overflow-hidden mb-2">
                                 <div
-                                    class="absolute left-1 top-1 text-[9px] text-cyan-400/40 z-10 pointer-events-none font-semibold uppercase code-font">
-                                    dB Scale
+                                    id="mousePosFrequency"
+                                    class="absolute left-0 right-0 w-full bg-white/80 pointer-events-none z-10 transition-opacity duration-200"
+                                    style="height: 1px; top: 0; opacity: 0">
+                                    <span
+                                        id="mousePosFrequencyLabel"
+                                        class="absolute left-0 top-[-14px] text-[12px] text-slate-400/80 z-10 pointer-events-none font-semibold uppercase code-font"></span>
                                 </div>
-                                <div id="waveform-container"></div>
+                                <div
+                                    id="waveform-container"
+                                    class="min-h-[540px]"></div>
                             </div>
 
-                            <!-- Interactive Spectrogram with Y-Axis kHz scale  -->
-                            <!-- Layout wrapping Spectrogram Canvas and side Y-Axis kHz scale -->
-                            <div
-                                class="relative flex items-stretch bg-black/60 rounded border-l border-slate-900/80 overflow-hidden mb-2.5">
-                                <!-- Spectrogram wrapper scroll synced relative flex-1 -->
-                                <div
-                                    class="w-full overflow-hidden min-h-[420px]"
-                                    id="spectrogram-viewport-container">
-                                    <div id="spectrogram-container"></div>
-                                </div>
-                            </div>
                             <div
                                 class="flex flex-col sm:flex-row sm:items-center justify-between gap-2 text-[10px] text-slate-500">
                                 <span
