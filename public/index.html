@@ -60,7 +60,7 @@
                         class="text-lg font-bold tracking-tight bg-gradient-to-r from-white via-slate-100 to-cyan-400 bg-clip-text text-transparent">
                         audiospec
                     </h1>
-                    <p class="text-xs text-slate-500">Audio Spectrogram Analyzer</p>
+                    <p class="text-xs text-slate-500">Audio Spectrogram Analyzer & Tag Editor</p>
                 </div>
             </div>
 
@@ -107,13 +107,11 @@
                             data-lucide="upload-cloud"
                             class="w-8 h-8 group-hover:scale-110 transition-transform duration-300"></i>
                     </div>
-
-                    <h3 class="text-sm font-semibold mb-1 text-slate-200">Load audio file</h3>
                     <p class="text-xs text-slate-500 max-w-[200px] mb-4">
                         Drag and drop, or browse MP3, WAV, FLAC, M4A, OGG, or any audio file
                     </p>
                     <button
-                        class="bg-cyan-500 hover:bg-cyan-400 text-slate-950 text-xs font-bold px-4 py-2 rounded-lg transition shadow-md shadow-cyan-950/20">
+                        class="bg-cyan-400 hover:bg-cyan-300 text-slate-900 text-xs font-bold px-4 py-2 rounded-lg transition shadow-md shadow-cyan-900/20">
                         Upload & Process
                     </button>
 
@@ -166,34 +164,34 @@
                     <div class="flex items-center justify-between mb-3 pb-2 border-b border-slate-800/60">
                         <div class="flex items-center gap-2">
                             <i
-                                data-lucide="history"
+                                data-lucide="music"
                                 class="w-4 h-4 text-slate-400"></i>
-                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Recent Tracks</h4>
+                            <h4 class="text-xs font-bold uppercase tracking-wider text-slate-400">Files</h4>
                         </div>
                         <span
-                            id="recent-count"
+                            id="audio-files-count"
                             class="text-[10px] px-1.5 py-0.5 rounded-full bg-slate-800 font-medium text-slate-400"
                             >0</span
                         >
                     </div>
 
                     <div
-                        id="recent-tracks-list"
+                        id="audio-files-list"
                         class="flex-1 overflow-y-auto space-y-2 pr-1">
                         <p class="text-xs text-slate-600 text-center py-6 italic">No audio files analyzed yet.</p>
                     </div>
                 </div>
             </div>
 
-            <!-- Middle & Right Columns: Visualizations & Metadata -->
+            <!-- Middle Column: Visualizations & Metadata -->
             <div class="lg:col-span-3 flex flex-col gap-6 h-full">
                 <!-- Technical Metadata Card -->
                 <div
                     id="metadata-panel"
                     class="bg-slate-900/30 border border-slate-800/60 rounded-xl p-5 shadow-sm">
-                    <div class="grid grid-cols-1 md:grid-cols-3 gap-6">
+                    <div class="grid grid-cols-1 md:grid-cols-4 gap-6">
                         <!-- Codec & Technical Stats -->
-                        <div class="md:border-r border-slate-800/60 pr-6 flex flex-col justify-between">
+                        <div class="col-span-1 md:border-r border-slate-800/60 pr-6 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center gap-2 mb-3">
                                     <i
@@ -249,7 +247,7 @@
                         </div>
 
                         <!-- File & Container details -->
-                        <div class="md:border-r border-slate-800/60 pr-6 flex flex-col justify-between">
+                        <div class="col-span-1 md:border-r border-slate-800/60 pr-6 flex flex-col justify-between">
                             <div>
                                 <div class="flex items-center gap-2 mb-3">
                                     <i
@@ -261,7 +259,7 @@
                                 </div>
                                 <div class="space-y-2">
                                     <div class="flex justify-between items-center text-xs">
-                                        <span class="text-slate-500">Format Name</span>
+                                        <span class="text-slate-500">Format</span>
                                         <span
                                             id="meta-format-short"
                                             class="font-semibold text-slate-200 code-font"
@@ -298,55 +296,36 @@
                         </div>
 
                         <!-- Metadata Tags -->
-                        <div class="flex flex-col justify-between">
-                            <div>
-                                <div class="flex items-center gap-2 mb-3">
-                                    <i
-                                        data-lucide="tag"
-                                        class="w-4 h-4 text-violet-400"></i>
-                                    <h4 class="text-xs font-bold uppercase tracking-wider text-violet-400">
-                                        Embedded tags
-                                    </h4>
-                                </div>
-                                <div class="flex gap-4 items-start">
-                                    <div class="flex-1 space-y-2 max-h-[120px] overflow-y-auto">
-                                        <div class="flex justify-between items-center text-xs">
-                                            <span class="text-slate-500">Title</span>
-                                            <span
-                                                id="meta-tag-title"
-                                                class="font-semibold text-slate-200 truncate max-w-[140px]"
-                                                >--</span
-                                            >
-                                        </div>
-                                        <div class="flex justify-between items-center text-xs">
-                                            <span class="text-slate-500">Artist</span>
-                                            <span
-                                                id="meta-tag-artist"
-                                                class="font-semibold text-slate-200 truncate max-w-[140px]"
-                                                >--</span
-                                            >
-                                        </div>
-                                        <div class="flex justify-between items-center text-xs">
-                                            <span class="text-slate-500">Album</span>
-                                            <span
-                                                id="meta-tag-album"
-                                                class="font-semibold text-slate-200 truncate max-w-[140px]"
-                                                >--</span
-                                            >
-                                        </div>
-                                        <div class="flex justify-between items-center text-xs">
-                                            <span class="text-slate-500">Genre</span>
-                                            <span
-                                                id="meta-tag-genre"
-                                                class="font-semibold text-slate-200 truncate max-w-[140px]"
-                                                >--</span
-                                            >
-                                        </div>
+                        <div class="col-span-2 flex flex-col justify-between h-full min-h-[200px]">
+                            <div class="flex flex-col h-full justify-between">
+                                <div class="flex items-center justify-between mb-2">
+                                    <div class="flex items-center gap-2">
+                                        <i
+                                            data-lucide="tag"
+                                            class="w-4 h-4 text-violet-400"></i>
+                                        <h4 class="text-xs font-bold uppercase tracking-wider text-violet-400">
+                                            Embedded tags
+                                        </h4>
                                     </div>
-                                    <!-- Embedded Album Art -->
+                                </div>
+
+                                <div class="flex gap-4 items-start flex-1 mb-2">
+                                    <div
+                                        id="tags-list-container"
+                                        class="flex-1 space-y-2 max-h-[135px] overflow-y-auto pr-2">
+                                        <!-- Will be dynamically populated of key-value pair rows in JS -->
+                                    </div>
+
+                                    <!-- Embedded Album Art & Replaceable File Input -->
                                     <div
                                         id="cover-art-container"
-                                        class="flex-shrink-0 w-24 h-24 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-center overflow-hidden relative shadow-inner">
+                                        class="flex-shrink-0 w-32 h-32 rounded-lg bg-slate-950/80 border border-slate-800/80 flex items-center justify-center overflow-hidden relative shadow-inner group/art"
+                                        title="Cover Art">
+                                        <input
+                                            type="file"
+                                            id="cover-art-input"
+                                            class="hidden"
+                                            accept="image/*" />
                                         <img
                                             id="meta-cover-art"
                                             src=""
@@ -354,7 +333,7 @@
                                             class="w-full h-full object-cover select-none pointer-events-none hidden" />
                                         <div
                                             id="meta-cover-placeholder"
-                                            class="text-slate-600 flex flex-col items-center gap-1">
+                                            class="text-slate-600 flex flex-col items-center gap-1 transition-colors">
                                             <i
                                                 data-lucide="music"
                                                 class="w-8 h-8"></i>
@@ -362,7 +341,61 @@
                                                 >No Art</span
                                             >
                                         </div>
+                                        <!-- Hover Event Overlay splits artwork into 2 action halves -->
+                                        <div
+                                            class="absolute inset-0 flex flex-col opacity-0 group-hover/art:opacity-100 transition-opacity duration-200 z-10">
+                                            <!-- Top Half: Replace Artwork -->
+                                            <button
+                                                id="btn-replace-art"
+                                                type="button"
+                                                class="flex-1 bg-slate-950/80 hover:bg-slate-950/95 text-cyan-400 flex flex-col items-center justify-center border-b border-slate-900/50 transition-colors cursor-pointer"
+                                                title="Replace Cover Art">
+                                                <i
+                                                    data-lucide="image-plus"
+                                                    class="w-4 h-4 mb-0.5 pointer-events-none"></i>
+                                                <span
+                                                    class="text-[8px] font-bold uppercase tracking-wider pointer-events-none"
+                                                    >Replace</span
+                                                >
+                                            </button>
+                                            <!-- Bottom Half: Download Artwork -->
+                                            <button
+                                                id="btn-download-art"
+                                                type="button"
+                                                class="flex-1 bg-slate-950/80 hover:bg-slate-950/95 text-amber-500 flex flex-col items-center justify-center transition-colors cursor-pointer"
+                                                title="Download Cover Art">
+                                                <i
+                                                    data-lucide="download"
+                                                    class="w-4 h-4 mb-0.5 pointer-events-none"></i>
+                                                <span
+                                                    class="text-[8px] font-bold uppercase tracking-wider pointer-events-none"
+                                                    >Download</span
+                                                >
+                                            </button>
+                                        </div>
                                     </div>
+                                </div>
+
+                                <!-- Action Buttons Row -->
+                                <div class="flex items-center justify-between pt-1 border-t border-slate-800/60">
+                                    <button
+                                        id="btn-add-tag"
+                                        class="flex items-center gap-1 text-[10px] uppercase tracking-wider font-bold text-violet-400 hover:text-violet-300 transition-colors px-2 py-1 rounded bg-slate-950/40 border border-slate-800/50 hover:bg-slate-950"
+                                        title="Add a new custom tag field">
+                                        <i
+                                            data-lucide="plus-circle"
+                                            class="w-3.5 h-3.5"></i>
+                                        Add Tag
+                                    </button>
+                                    <button
+                                        id="btn-save-tags"
+                                        class="flex items-center w-32 gap-1.5 text-xs font-bold text-slate-950 bg-cyan-400 hover:bg-cyan-300 transition-colors px-3 py-1.5 rounded-lg shadow-sm font-semibold active:scale-95 duration-100"
+                                        title="Save all changes back to file">
+                                        <i
+                                            data-lucide="save"
+                                            class="w-3.5 h-3.5"></i>
+                                        Save Changes
+                                    </button>
                                 </div>
                             </div>
                         </div>

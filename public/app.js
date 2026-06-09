@@ -8,6 +8,9 @@ let currentFileSampleRate = 44100
 let isMuted = false
 let isLooping = false
 let previousVolume = 0.8
+let currentTags = {} // Stores current metadata tags key-values
+let originalFileName = null // Stores currently loaded track filename for saved edits
+let newCoverArtFile = null // Holds new cover art file object if replaced locally
 
 // DOM Elements
 const dropzone = document.getElementById('dropzone')
@@ -16,8 +19,8 @@ const uploadProgressContainer = document.getElementById('upload-progress-contain
 const progressRingCircle = document.getElementById('progress-ring-circle')
 const progressPercent = document.getElementById('progress-percent')
 const progressStatus = document.getElementById('progress-status')
-const recentTracksList = document.getElementById('recent-tracks-list')
-const recentCount = document.getElementById('recent-count')
+const audioFilesList = document.getElementById('audio-files-list')
+const audioFilesCount = document.getElementById('audio-files-count')
 
 // Metadata DOM Elements
 const activeFileHeader = document.getElementById('active-file-header')
@@ -35,10 +38,13 @@ const metaFilesize = document.getElementById('meta-filesize')
 const metaDuration = document.getElementById('meta-duration')
 // const metaNyquist = document.getElementById('meta-nyquist')
 
-const metaTagTitle = document.getElementById('meta-tag-title')
-const metaTagArtist = document.getElementById('meta-tag-artist')
-const metaTagAlbum = document.getElementById('meta-tag-album')
-const metaTagGenre = document.getElementById('meta-tag-genre')
+const tagsListContainer = document.getElementById('tags-list-container')
+const btnAddTag = document.getElementById('btn-add-tag')
+const btnSaveTags = document.getElementById('btn-save-tags')
+const coverArtContainer = document.getElementById('cover-art-container')
+const coverArtInput = document.getElementById('cover-art-input')
+const btnReplaceArt = document.getElementById('btn-replace-art')
+const btnDownloadArt = document.getElementById('btn-download-art')
 const metaCoverArt = document.getElementById('meta-cover-art')
 const metaCoverPlaceholder = document.getElementById('meta-cover-placeholder')
 
@@ -75,7 +81,7 @@ const btnCloseHelpConfirm = document.getElementById('btn-close-help-confirm')
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons()
-    fetchRecentTracks()
+    fetchAudioFiles()
     setupEventListeners()
 })
 
@@ -140,14 +146,14 @@ function setupEventListeners() {
         const dt = e.dataTransfer
         const files = dt.files
         if (files.length > 0) {
-            wavesurfer.stop()
+            wavesurfer?.stop()
             handleAudioUpload(files[0])
         }
     })
 
     fileInput.addEventListener('change', (e) => {
         if (e.target.files.length > 0) {
-            wavesurfer.stop()
+            wavesurfer?.stop()
             handleAudioUpload(e.target.files[0])
         }
     })
@@ -255,46 +261,100 @@ function setupEventListeners() {
                 break
         }
     })
+
+    // Cover Art actions (Replace / Download)
+    if (btnReplaceArt && coverArtInput) {
+        btnReplaceArt.addEventListener('click', (e) => {
+            e.stopPropagation()
+            coverArtInput.click()
+        })
+    }
+
+    if (coverArtInput) {
+        coverArtInput.addEventListener('change', (e) => {
+            if (e.target.files.length > 0) {
+                newCoverArtFile = e.target.files[0]
+                const reader = new FileReader()
+                reader.onload = (event) => {
+                    metaCoverArt.src = event.target.result
+                    metaCoverArt.classList.remove('hidden')
+                    metaCoverPlaceholder.classList.add('hidden')
+                }
+                reader.readAsDataURL(newCoverArtFile)
+            }
+        })
+    }
+
+    if (btnDownloadArt) {
+        btnDownloadArt.addEventListener('click', (e) => {
+            e.stopPropagation()
+            if (newCoverArtFile) {
+                // If the user has replaced artwork locally but not saved yet, download the local image file
+                const url = URL.createObjectURL(newCoverArtFile)
+                const a = document.createElement('a')
+                a.href = url
+                a.download = `cover_${newCoverArtFile.name}`
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+                URL.revokeObjectURL(url)
+            } else if (originalFileName && !metaCoverArt.classList.contains('hidden') && metaCoverArt.src) {
+                // Download original embedded album artwork from server
+                const a = document.createElement('a')
+                a.href = `/api/art?file=${encodeURIComponent(originalFileName)}`
+                a.download = `cover_${originalFileName.substring(0, originalFileName.lastIndexOf('.')) || 'art'}.jpg`
+                document.body.appendChild(a)
+                a.click()
+                document.body.removeChild(a)
+            } else {
+                alert('No artwork is loaded on this track to download.')
+            }
+        })
+    }
+
+    // Add Tag field listener
+    if (btnAddTag) {
+        btnAddTag.addEventListener('click', addTagRow)
+    }
+
+    // Save Tags back to file
+    if (btnSaveTags) {
+        btnSaveTags.addEventListener('click', saveMetadata)
+    }
 }
 
 // Fetch and render previous audio uploads on the server
-async function fetchRecentTracks() {
+async function fetchAudioFiles() {
     try {
         const res = await fetch('/api/files')
         const list = await res.json()
 
-        recentCount.textContent = list.length
+        audioFilesCount.textContent = list.length
 
         if (list.length === 0) {
-            recentTracksList.innerHTML = `<p class="text-xs text-slate-600 text-center py-6 italic">No audio files analyzed yet.</p>`
+            audioFilesList.innerHTML = `<p class="text-xs text-slate-600 text-center py-6 italic">No audio files analyzed yet.</p>`
             return
         }
 
-        recentTracksList.innerHTML = ''
+        audioFilesList.innerHTML = ''
         list.forEach((file) => {
             const trackEl = document.createElement('div')
             trackEl.className =
                 'flex items-center justify-between p-2.5 rounded-lg bg-slate-950/45 hover:bg-slate-900 border border-slate-800 hover:border-slate-700 transition cursor-pointer group text-left'
 
-            const fileDate = new Date(file.uploadedAt).toLocaleDateString(undefined, {
-                month: 'short',
-                day: 'numeric',
-                hour: '2-digit',
-                minute: '2-digit',
-            })
-
             trackEl.innerHTML = `
                 <div class="flex-1 min-w-0 pr-2">
                     <h5 class="text-xs font-semibold text-slate-200 truncate group-hover:text-cyan-400 transition" title="${file.fileName}">
-                        ${file.fileName.split('_').slice(1).join('_') || file.fileName}
+                        ${file.fileName}
                     </h5>
-                    <p class="text-[10px] text-slate-500 mt-0.5 flex gap-2">
+                    <p class="text-[10px] text-slate-500 mt-0.5">
                         <span>${formatBytes(file.sizeBytes)}</span>
-                        <span>•</span>
-                        <span>${fileDate}</span>
                     </p>
                 </div>
                 <div class="flex items-center gap-1.5 shrink-0">
+                    <a href="${file.fileUrl}" download="${file.fileName}" class="btn-download-track p-1.5 rounded bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-cyan-400 hover:border-cyan-500/20 transition-all shadow-inner" title="Download Track">
+                        <i data-lucide="download" class="w-4 h-4"></i>
+                    </a>
                     <button class="btn-delete-track p-1.5 rounded bg-slate-900 border border-slate-800/40 text-slate-400 hover:text-red-400 hover:border-red-500/20 transition-all shadow-inner" title="Delete Track">
                         <i data-lucide="trash-2" class="w-4 h-4"></i>
                     </button>
@@ -305,21 +365,24 @@ async function fetchRecentTracks() {
                 loadAudioFromServer(file.fileUrl, file.fileName)
             })
 
+            const btnDownload = trackEl.querySelector('.btn-download-track')
+            if (btnDownload) {
+                btnDownload.addEventListener('click', (e) => {
+                    e.stopPropagation()
+                })
+            }
+
             const btnDelete = trackEl.querySelector('.btn-delete-track')
             if (btnDelete) {
                 btnDelete.addEventListener('click', async (e) => {
                     e.stopPropagation()
-                    if (
-                        confirm(
-                            `Are you sure you want to delete "${file.fileName.split('_').slice(1).join('_') || file.fileName}"?`,
-                        )
-                    ) {
+                    if (confirm(`Are you sure you want to delete "${file.fileName}"?`)) {
                         try {
                             const response = await fetch(`/api/files?file=${encodeURIComponent(file.fileName)}`, {
                                 method: 'DELETE',
                             })
                             if (response.ok) {
-                                fetchRecentTracks()
+                                fetchAudioFiles()
                             } else {
                                 const errData = await response.json()
                                 alert(`Error deleting file: ${errData.error || 'Unknown error'}`)
@@ -332,12 +395,12 @@ async function fetchRecentTracks() {
                 })
             }
 
-            recentTracksList.appendChild(trackEl)
+            audioFilesList.appendChild(trackEl)
         })
 
         lucide.createIcons()
     } catch (e) {
-        console.error('Error fetching recent list:', e)
+        console.error('Error fetching audio files list:', e)
     }
 }
 
@@ -376,7 +439,7 @@ function handleAudioUpload(file) {
                 const response = JSON.parse(xhr.responseText)
                 displayTrackMetadata(response)
                 initWaveSurfer(response.fileUrl, response.audioStream.sampleRate || 44100)
-                fetchRecentTracks()
+                fetchAudioFiles()
             }, 500)
         } else {
             console.error('Failed upload response:', xhr.responseText)
@@ -478,16 +541,16 @@ function displayTrackMetadata(data) {
     metaFilesize.textContent = formatBytes(data.sizeBytes)
     metaDuration.textContent = formatTime(data.duration)
 
-    // Embed tag values
-    const t = data.format.tags || {}
-    metaTagTitle.textContent = t.title || t.TITLE || data.originalName || '--'
-    metaTagArtist.textContent = t.artist || t.ARTIST || '--'
-    metaTagAlbum.textContent = t.album || t.ALBUM || '--'
-    metaTagGenre.textContent = t.genre || t.GENRE || '--'
+    // Set State variables
+    originalFileName = data.fileName
+    currentTags = { ...(data.format.tags || {}) }
+    newCoverArtFile = null // Reset custom uploaded art flag
 
-    // Update cover artwork
+    renderTagsList()
+
+    // Update cover artwork with cache-busting timestamp
     if (data.hasArt && data.fileName) {
-        metaCoverArt.src = `/api/art?file=${encodeURIComponent(data.fileName)}`
+        metaCoverArt.src = `/api/art?file=${encodeURIComponent(data.fileName)}&t=${Date.now()}`
         metaCoverArt.classList.remove('hidden')
         metaCoverPlaceholder.classList.add('hidden')
     } else {
@@ -711,5 +774,241 @@ function updateLoopUI() {
     } else {
         btnLoop.classList.remove('text-indigo-400', 'bg-indigo-950/40', 'border', 'border-indigo-500/20')
         btnLoop.classList.add('text-slate-500')
+    }
+}
+
+// Render tags list in editable key-value inputs
+function renderTagsList() {
+    if (!tagsListContainer) return
+
+    tagsListContainer.innerHTML = ''
+
+    // List standard tags in lowercase to make them suggested/predefined
+    const standardKeys = ['title', 'artist', 'album', 'genre']
+    const keys = Object.keys(currentTags)
+
+    // Ensure common tags have an input
+    standardKeys.forEach((k) => {
+        const hasKey = keys.some((existingKey) => existingKey.toLowerCase() === k.toLowerCase())
+        if (!hasKey) {
+            currentTags[k] = ''
+        }
+    })
+
+    const allKeys = Object.keys(currentTags)
+
+    if (allKeys.length === 0) {
+        tagsListContainer.innerHTML = `<p class="text-[11px] text-slate-500 text-center py-2 italic font-medium">No tags loaded</p>`
+        return
+    }
+
+    allKeys.forEach((key) => {
+        const val = currentTags[key] || ''
+        const row = document.createElement('div')
+        row.className = 'flex items-center gap-1.5'
+
+        row.innerHTML = `
+            <input
+                type="text"
+                class="tag-key bg-slate-950/80 text-violet-400 font-bold border border-slate-800/80 rounded px-2 py-0.5 w-[75px] shrink-0 text-[10.5px] focus:ring-1 focus:ring-violet-500 border-none outline-none select-all"
+                value="${key}"
+                placeholder="Key" />
+            <input
+                type="text"
+                class="tag-value flex-1 bg-slate-950/80 text-slate-200 border border-slate-800/80 rounded px-2 py-0.5 text-[10.5px] focus:ring-1 focus:ring-cyan-500 border-none outline-none"
+                value="${val}"
+                placeholder="Value" />
+            <button
+                class="btn-delete-tag-row p-1 text-slate-500 hover:text-red-400 transition"
+                title="Remove Tag">
+                <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+            </button>
+        `
+
+        const keyInput = row.querySelector('.tag-key')
+        const valInput = row.querySelector('.tag-value')
+        const btnDeleteRow = row.querySelector('.btn-delete-tag-row')
+
+        let prevKey = key
+
+        keyInput.addEventListener('input', (e) => {
+            const nextKey = e.target.value.trim()
+            if (nextKey && nextKey !== prevKey) {
+                const currentVal = currentTags[prevKey] || ''
+                delete currentTags[prevKey]
+                currentTags[nextKey] = currentVal
+                prevKey = nextKey
+            }
+        })
+
+        valInput.addEventListener('input', (e) => {
+            if (prevKey) {
+                currentTags[prevKey] = e.target.value
+            }
+        })
+
+        btnDeleteRow.addEventListener('click', () => {
+            if (prevKey) {
+                delete currentTags[prevKey]
+            }
+            row.remove()
+            if (Object.keys(currentTags).length === 0) {
+                tagsListContainer.innerHTML = `<p class="text-[11px] text-slate-500 text-center py-2 italic font-medium">No tags loaded</p>`
+            }
+        })
+
+        tagsListContainer.appendChild(row)
+    })
+
+    lucide.createIcons()
+}
+
+// Function to add a brand new custom tag row manually
+function addTagRow() {
+    if (!tagsListContainer) return
+
+    // Clear empty placeholder text if present
+    const emptyPlaceholder = tagsListContainer.querySelector('p.italic')
+    if (emptyPlaceholder) {
+        tagsListContainer.innerHTML = ''
+    }
+
+    let idx = 1
+    let nextKey = `tag${idx}`
+    while (currentTags[nextKey] !== undefined) {
+        idx++
+        nextKey = `tag${idx}`
+    }
+
+    currentTags[nextKey] = ''
+
+    const row = document.createElement('div')
+    row.className = 'flex items-center gap-1.5'
+
+    row.innerHTML = `
+        <input
+            type="text"
+            class="tag-key bg-slate-950/80 text-violet-400 font-bold border border-slate-800/80 rounded px-2 py-0.5 w-[75px] shrink-0 text-[10.5px] focus:ring-1 focus:ring-violet-500 border-none outline-none select-all"
+            value="${nextKey}"
+            placeholder="Key" />
+        <input
+            type="text"
+            class="tag-value flex-1 bg-slate-950/80 text-slate-200 border border-slate-800/80 rounded px-2 py-0.5 text-[10.5px] focus:ring-1 focus:ring-cyan-500 border-none outline-none"
+            value=""
+            placeholder="Value" />
+        <button
+            class="btn-delete-tag-row p-1 text-slate-500 hover:text-red-400 transition"
+            title="Remove Tag">
+            <i data-lucide="trash" class="w-3.5 h-3.5"></i>
+        </button>
+    `
+
+    const keyInput = row.querySelector('.tag-key')
+    const valInput = row.querySelector('.tag-value')
+    const btnDeleteRow = row.querySelector('.btn-delete-tag-row')
+
+    let prevKey = nextKey
+
+    keyInput.addEventListener('input', (e) => {
+        const targetKey = e.target.value.trim()
+        if (targetKey && targetKey !== prevKey) {
+            const currentVal = currentTags[prevKey] || ''
+            delete currentTags[prevKey]
+            currentTags[targetKey] = currentVal
+            prevKey = targetKey
+        }
+    })
+
+    valInput.addEventListener('input', (e) => {
+        if (prevKey) {
+            currentTags[prevKey] = e.target.value
+        }
+    })
+
+    btnDeleteRow.addEventListener('click', () => {
+        if (prevKey) {
+            delete currentTags[prevKey]
+        }
+        row.remove()
+        if (Object.keys(currentTags).length === 0) {
+            tagsListContainer.innerHTML = `<p class="text-[11px] text-slate-500 text-center py-2 italic font-medium">No tags loaded</p>`
+        }
+    })
+
+    tagsListContainer.appendChild(row)
+    lucide.createIcons()
+
+    keyInput.focus()
+    keyInput.select()
+}
+
+// Function to save edited tags & replaceable artwork to server
+async function saveMetadata() {
+    if (!originalFileName) {
+        alert('Please load an audio file first before saving changes.')
+        return
+    }
+
+    const saveText = btnSaveTags.innerHTML
+    btnSaveTags.disabled = true
+    btnSaveTags.innerHTML = `<i data-lucide="loader" class="w-3.5 h-3.5 animate-spin"></i> Saving...`
+    lucide.createIcons()
+
+    try {
+        const formData = new FormData()
+        formData.append('file', originalFileName)
+
+        // Clean tags: filter out keys that are completely empty
+        const cleanedTags = {}
+        Object.entries(currentTags).forEach(([k, v]) => {
+            const trimmedKey = k.trim()
+            if (trimmedKey) {
+                cleanedTags[trimmedKey] = v
+            }
+        })
+        formData.append('tags', JSON.stringify(cleanedTags))
+
+        if (newCoverArtFile) {
+            formData.append('art', newCoverArtFile)
+        }
+
+        const res = await fetch('/api/save-metadata', {
+            method: 'POST',
+            body: formData,
+        })
+
+        const data = await res.json()
+        if (res.ok && data.success) {
+            // Visual success feedback
+            btnSaveTags.classList.remove('bg-cyan-400', 'hover:bg-cyan-300')
+            btnSaveTags.classList.add('bg-emerald-500', 'text-white')
+            btnSaveTags.innerHTML = `<i data-lucide="check-circle-2" class="w-3.5 h-3.5"></i> Saved!`
+            lucide.createIcons()
+
+            // Reload original track metadata
+            await loadAudioFromServer(currentFileUrl, originalFileName)
+
+            // Reload the track list to reflect if file sizes changed
+            fetchAudioFiles()
+
+            setTimeout(() => {
+                btnSaveTags.classList.remove('bg-emerald-500', 'text-white')
+                btnSaveTags.classList.add('bg-cyan-400', 'hover:bg-cyan-300', 'text-slate-950')
+                btnSaveTags.innerHTML = saveText
+                lucide.createIcons()
+                btnSaveTags.disabled = false
+            }, 2000)
+        } else {
+            alert(`Error saving metadata: ${data.error || 'Unknown error'}`)
+            btnSaveTags.innerHTML = saveText
+            lucide.createIcons()
+            btnSaveTags.disabled = false
+        }
+    } catch (err) {
+        console.error('Error in saving request:', err)
+        alert('Failed to connect to backend server.')
+        btnSaveTags.innerHTML = saveText
+        lucide.createIcons()
+        btnSaveTags.disabled = false
     }
 }

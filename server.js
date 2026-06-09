@@ -19,10 +19,7 @@ const storage = multer.diskStorage({
         cb(null, uploadDir)
     },
     filename: (req, file, cb) => {
-        // Keep file extension and add timestamp to avoid naming collisions
-        const ext = path.extname(file.originalname)
-        const name = path.basename(file.originalname, ext).replace(/[^a-zA-Z0-9-_]/g, '_')
-        cb(null, `${Date.now()}_${name}${ext}`)
+        cb(null, file.originalname)
     },
 })
 
@@ -39,7 +36,6 @@ app.use(
     '/uploads',
     express.static(uploadDir, {
         setHeaders: (res, path) => {
-            // Enable range requests and cross-origin isolation if needed
             res.set('Accept-Ranges', 'bytes')
         },
     }),
@@ -61,7 +57,7 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
                 error: 'Failed to parse audio file details with ffprobe.',
                 details: err.message,
                 fileUrl: `/uploads/${req.file.filename}`,
-                originalName: req.file.originalname,
+                fileName: req.file.filename,
                 size: req.file.size,
             })
         }
@@ -80,7 +76,6 @@ app.post('/api/upload', upload.single('audio'), (req, res) => {
             success: true,
             fileUrl: `/uploads/${req.file.filename}`,
             fileName: req.file.filename,
-            originalName: req.file.originalname,
             sizeBytes: req.file.size,
             duration: parseFloat(formatInfo.duration || audioStream.duration || 0),
             format: {
@@ -136,7 +131,6 @@ app.get('/api/metadata', (req, res) => {
                 details: err.message,
                 fileUrl: fileUrl,
                 fileName: safeFilename,
-                originalName: safeFilename.split('_').slice(1).join('_') || safeFilename,
                 sizeBytes: stats.size,
             })
         }
@@ -150,7 +144,6 @@ app.get('/api/metadata', (req, res) => {
             success: true,
             fileUrl: fileUrl,
             fileName: safeFilename,
-            originalName: safeFilename.split('_').slice(1).join('_') || safeFilename,
             sizeBytes: stats.size,
             duration: parseFloat(formatInfo.duration || audioStream.duration || 0),
             format: {
@@ -233,10 +226,151 @@ app.get('/api/art', (req, res) => {
     })
 })
 
+// Endpoint to save edited tags and artwork back to the audio file
+app.post('/api/save-metadata', upload.single('art'), (req, res) => {
+    const filename = req.body.file
+    if (!filename) {
+        if (req.file) fs.unlinkSync(req.file.path)
+        console.error('File name is required in request body')
+        return res.status(400).json({ error: 'File name is required' })
+    }
+
+    const safeFilename = path.basename(filename)
+    const inputPath = path.join(uploadDir, safeFilename)
+
+    if (!fs.existsSync(inputPath)) {
+        if (req.file) fs.unlinkSync(req.file.path)
+        console.error('Audio file not found:', inputPath)
+        return res.status(404).json({ error: 'Audio file not found' })
+    }
+
+    let tags = {}
+    try {
+        tags = JSON.parse(req.body.tags || '{}')
+    } catch (e) {
+        if (req.file) fs.unlinkSync(req.file.path)
+        console.error('Invalid tags JSON:', e)
+        return res.status(400).json({ error: 'Invalid tags JSON format' })
+    }
+
+    const ext = path.extname(safeFilename).toLowerCase()
+    const tempFilename = `temp_${Date.now()}_${safeFilename}`
+    const outputPath = path.join(uploadDir, tempFilename)
+
+    // Probe original file tags before performing metadata/artwork updates
+    ffmpeg.ffprobe(inputPath, (err, metadata) => {
+        const originalTags = (metadata && metadata.format && metadata.format.tags) || {}
+
+        // Build FFmpeg command arguments
+        let args = ['-y', '-i', inputPath]
+
+        if (req.file) {
+            // Add cover art image as second input
+            args.push('-i', req.file.path)
+            if (ext === '.mp3') {
+                args.push(
+                    '-map',
+                    '0:a',
+                    '-map',
+                    '1:0',
+                    '-c:a',
+                    'copy',
+                    '-c:v',
+                    'copy',
+                    '-id3v2_version',
+                    '3',
+                    '-metadata:s:v',
+                    'title=Album cover',
+                    '-metadata:s:v',
+                    'comment=Cover (front)',
+                    '-disposition:v',
+                    'attached_pic',
+                )
+            } else {
+                args.push(
+                    '-map',
+                    '0:a',
+                    '-map',
+                    '1:0',
+                    '-c:a',
+                    'copy',
+                    '-c:v',
+                    'copy',
+                    '-disposition:v',
+                    'attached_pic',
+                )
+            }
+        } else {
+            // Maintain all existing streams (including existing image artwork if there was one)
+            args.push('-map', '0', '-c', 'copy')
+        }
+
+        // Map global metadata from the first input (the audio file) so other stream details aren't stripped
+        args.push('-map_metadata', '0')
+
+        // Overwrite or create all current tags
+        Object.entries(tags).forEach(([key, val]) => {
+            args.push('-metadata', `${key}=${val}`)
+        })
+
+        // Explicitly clear any original tag keys that were removed in the edit list
+        const newKeysLower = Object.keys(tags).map((k) => k.toLowerCase())
+        Object.keys(originalTags).forEach((key) => {
+            if (!newKeysLower.includes(key.toLowerCase())) {
+                args.push('-metadata', `${key}=`)
+            }
+        })
+
+        // Output path
+        args.push(outputPath)
+
+        // Spawn FFmpeg subprocess
+        const { spawn } = require('child_process')
+        const ffmpegProcess = spawn('ffmpeg', args)
+
+        let stderrData = ''
+        ffmpegProcess.stderr.on('data', (data) => {
+            stderrData += data.toString()
+        })
+
+        ffmpegProcess.on('close', (code) => {
+            // Clean up uploaded temp artwork file if we had one
+            if (req.file && fs.existsSync(req.file.path)) {
+                try {
+                    fs.unlinkSync(req.file.path)
+                } catch (err) {
+                    console.error('Error deleting temp uploaded artwork:', err)
+                }
+            }
+
+            if (code === 0) {
+                try {
+                    // To replace original with updated file securely:
+                    // Delete original, and rename temp to original
+                    fs.unlinkSync(inputPath)
+                    fs.renameSync(outputPath, inputPath)
+                    return res.json({ success: true, message: 'Metadata and artwork saved successfully' })
+                } catch (err) {
+                    console.error('Error overwriting file:', err)
+                    if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
+                    return res
+                        .status(500)
+                        .json({ error: 'Failed to overwrite original audio file', details: err.message })
+                }
+            } else {
+                console.error('FFmpeg failed with code:', code, stderrData)
+                if (fs.existsSync(outputPath)) fs.unlinkSync(outputPath)
+                return res.status(500).json({ error: 'FFmpeg failed to write tags or artwork', details: stderrData })
+            }
+        })
+    })
+})
+
 // Endpoint to fetch list of uploaded audio files (handy for reloading previously uploaded files)
 app.get('/api/files', (req, res) => {
     fs.readdir(uploadDir, (err, files) => {
         if (err) {
+            console.error('Error reading uploads directory:', err)
             return res.status(500).json({ error: 'Could not read uploads directory' })
         }
 
@@ -282,7 +416,6 @@ app.delete('/api/files', (req, res) => {
     })
 })
 
-// Start server
 app.listen(PORT, '0.0.0.0', () => {
     console.log(`Audiospec backend running on http://0.0.0.0:${PORT}`)
 })
