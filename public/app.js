@@ -78,6 +78,8 @@ const btnThemeHelp = document.getElementById('btn-theme-help')
 const btnCloseHelp = document.getElementById('btn-close-help')
 const btnCloseHelpConfirm = document.getElementById('btn-close-help-confirm')
 
+const btnGithub = document.getElementById('btn-github')
+
 // Initialize on page load
 document.addEventListener('DOMContentLoaded', () => {
     lucide.createIcons()
@@ -118,6 +120,10 @@ function setupEventListeners() {
     // Close help modal on clicking overlay
     helpModal.addEventListener('click', (e) => {
         if (e.target === helpModal) helpModal.classList.add('hidden')
+    })
+
+    btnGithub.addEventListener('click', () => {
+        window.open('https://github.com/xiblizz/audiospec', '_blank')
     })
 
     // Drag and drop event listeners
