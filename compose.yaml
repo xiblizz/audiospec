@@ -1,7 +1,7 @@
 services:
     audiospec:
         build: .
-        container_name: audiospec-app
+        container_name: audiospec
         ports:
             - '3000:3000'
         environment:
